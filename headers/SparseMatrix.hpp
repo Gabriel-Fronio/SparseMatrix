@@ -56,10 +56,13 @@ class SparseMatrix {
 
     void addElement(T value, int rowNumber, int colNumber)
     {
-      if(rowNumber > this->rowLength)
-        this->rowLength = rowNumber;
-      if(colNumber > this->colLength)
-        this->colLength = colNumber;
+      if(value != this->defaultValue)
+      {
+        if(rowNumber > this->rowLength)
+          this->rowLength = rowNumber;
+        if(colNumber > this->colLength)
+          this->colLength = colNumber;
+      }
 
 
       T valueInPos = this->getInfo(rowNumber, colNumber);
@@ -100,13 +103,50 @@ class SparseMatrix {
           colTree.deleteInfo(*new Element<T>(valueInPos, colNumber));
           if(value != this->defaultValue)
             colTree.addInfo(*new Element<T>(value, colNumber));
-
+          
           this->elements->deleteInfo(*new Element<AvlTree<Element<T>>>(colTree.getRoot(), rowNumber));
-          this->elements->addInfo(*new Element<AvlTree<Element<T>>>(colTree.getRoot(), rowNumber));
+          if(colTree.getRoot() != nullptr)
+            this->elements->addInfo(*new Element<AvlTree<Element<T>>>(colTree.getRoot(), rowNumber));
+
+          if(value == this->defaultValue)
+          {
+            // novo tamanho da matriz vira o key do maior no na arvore elements
+            if(rowNumber >= this->rowLength)
+              rowLength = this->elements->biggerNodeOnSubtree(this->elements->getRoot())->getInfo().getKey();
+            if(colNumber >= this->colLength)
+              this->colLength = this->findBiggestCol(this->elements->getRoot());
+          }
         }
       }
     };
 
+    int findBiggestCol(Node<Element<AvlTree<Element<T>>>>* node)
+    {
+      int biggestKey = 0;
+      Node<Element<AvlTree<Element<T>>>>* curr = node;
+
+      if(node->getLeft() != nullptr)
+      {
+        int leftKey = this->findBiggestCol(node->getLeft());
+        if(leftKey > biggestKey)
+          biggestKey = leftKey;
+      }
+
+      AvlTree<Element<T>> colTree = node->getInfo().getValue();
+      int key = colTree.biggerNodeOnSubtree(colTree.getRoot())->getInfo().getKey();
+
+      if(key > biggestKey)
+        biggestKey = key;
+
+      if(node->getRight() != nullptr)
+      {
+        int rightKey = this->findBiggestCol(node->getRight());
+        if(rightKey > biggestKey)
+          biggestKey = rightKey;
+      }
+      
+      return biggestKey;
+    }
 
     T getInfo(int row, int col) const
     {
